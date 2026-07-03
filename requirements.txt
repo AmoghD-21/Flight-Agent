@@ -1,0 +1,9 @@
+streamlit
+langchain
+langchain-community
+langchain-openai
+python-dotenv
+upstash-redis
+faiss-cpu
+pdfplumber
+langchain-text-splitters
