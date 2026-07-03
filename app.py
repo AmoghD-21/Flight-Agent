@@ -61,6 +61,26 @@ GOLD = "#C9A15A"
 # ══════════════════════════════════════════════════════════════════════════
 # 3. SESSION + PERSISTENT CHAT MEMORY (Upstash Redis, bound to URL state)
 # ══════════════════════════════════════════════════════════════════════════
+# query_params = st.query_params
+# if "session" in query_params:
+#     session_id = query_params["session"]
+#     st.session_state.user_session_id = session_id
+# elif "user_session_id" in st.session_state:
+#     session_id = st.session_state.user_session_id
+# else:
+#     session_id = str(uuid.uuid4())
+#     st.session_state.user_session_id = session_id
+#     st.query_params["session"] = session_id
+
+# history_store = UpstashRedisChatMessageHistory(
+#     url=os.getenv("UPSTASH_REDIS_REST_URL"),
+#     token=os.getenv("UPSTASH_REDIS_REST_TOKEN"),
+#     session_id=session_id,
+#     ttl=86400,
+# )
+
+
+# 4. Persistent Chat Memory (UPSTASH REDIS + URL STATE BINDING)
 query_params = st.query_params
 if "session" in query_params:
     session_id = query_params["session"]
@@ -72,12 +92,23 @@ else:
     st.session_state.user_session_id = session_id
     st.query_params["session"] = session_id
 
+# 💡 FIX: Pull credentials seamlessly using st.secrets (Streamlit Cloud's preferred format)
+# with an os.getenv fallback to ensure it still runs smoothly on your local machine!
+redis_url = st.secrets.get("UPSTASH_REDIS_REST_URL") or os.getenv("UPSTASH_REDIS_REST_URL")
+redis_token = st.secrets.get("UPSTASH_REDIS_REST_TOKEN") or os.getenv("UPSTASH_REDIS_REST_TOKEN")
+
+# Double-check initialization states to prevent blank credentials from causing silent crashes
+if not redis_url or not redis_token:
+    st.error("❌ Configuration Missing: Upstash Redis credentials were not found in Secrets or local environment variables.")
+    st.stop()
+
 history_store = UpstashRedisChatMessageHistory(
-    url=os.getenv("UPSTASH_REDIS_REST_URL"),
-    token=os.getenv("UPSTASH_REDIS_REST_TOKEN"),
+    url=redis_url,
+    token=redis_token,
     session_id=session_id,
-    ttl=86400,
+    ttl=86400
 )
+
 
 # Timestamps live in session_state, index-aligned with history_store.messages.
 if "msg_times" not in st.session_state:
